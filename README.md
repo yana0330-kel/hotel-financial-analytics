@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Hotel Chain Financial Performance & Unit Economics Analysis, 2024
 
 Dataset from Kaggle: [Hotel Sales 2024](https://www.kaggle.com/datasets/tianrongsim/hotel-sales-2024).
