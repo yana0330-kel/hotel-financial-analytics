@@ -1,0 +1,34 @@
+name: hotel-finance-project
+ 
+services:
+  # 1. Хранилище бюджетов FP&A
+  hotel_postgres:
+    image: postgres:15-alpine
+    container_name: hotel_postgres_db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5433:5432"  # Проверенный свободный порт Windows
+    volumes:
+      - hotel_pg_data:/var/lib/postgresql/data
+    restart: unless-stopped
+ 
+  # 2. BI-инструмент для дашбордов
+  hotel_metabase:
+    image: metabase/metabase:latest
+    container_name: hotel_metabase_bi
+    ports:
+      - "3000:3000"  # Проверенный свободный порт Windows
+    volumes:
+      - hotel_mb_data:/metabase-data
+    environment:
+      MB_DB_TYPE: h2  # метаданные Metabase внутри контейнера — при `down -v` дашборды удалятся вместе с volume, сами данные (hotel_pg_data) не пострадают
+    depends_on:
+      - hotel_postgres
+    restart: unless-stopped
+ 
+volumes:
+  hotel_pg_data:
+  hotel_mb_data:
