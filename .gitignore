@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -216,3 +217,13 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+=======
+.env
+logs/*
+!logs/.gitkeep
+plugins/*
+!plugins/.gitkeep
+__pycache__/
+*.pyc
+services/airflow/data/*.csv
+>>>>>>> origin/master
