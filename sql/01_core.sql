@@ -88,10 +88,6 @@ CREATE TABLE fact_bookings (
     comm_amt NUMERIC(10, 2)
 );
 
--- ============================================================================
--- НАПОЛНЕНИЕ ДАННЫМИ (DML)
--- ============================================================================
-
 -- Наполнение справочника отелей
 INSERT INTO dim_hotel (hotel_name, hotel_type, reg, state)
 SELECT hotel_name, MAX(types), MAX(reg), MAX(state)
