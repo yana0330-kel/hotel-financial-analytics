@@ -1,5 +1,5 @@
 
---ИСТКА СТРУКТУРЫ (Запускать при пересоздании модели)
+--CLEAN TABLES (Starting from scratch)
 
 DROP TABLE IF EXISTS fact_bookings;
 DROP TABLE IF EXISTS dim_salesperson;
@@ -7,7 +7,7 @@ DROP TABLE IF EXISTS dim_channel;
 DROP TABLE IF EXISTS dim_customer;
 DROP TABLE IF EXISTS dim_hotel;
 
--- 1. Справочник отелей
+-- 1. Hotel dimension table
 CREATE TABLE dim_hotel (
     hotel_id SERIAL PRIMARY KEY,
     hotel_name VARCHAR(255) UNIQUE NOT NULL,
@@ -16,47 +16,47 @@ CREATE TABLE dim_hotel (
     state VARCHAR(100)
 );
 
--- 2. Справочник клиентов
+-- 2. Customer dimension table
 CREATE TABLE dim_customer (
     customer_id SERIAL PRIMARY KEY,
     emel VARCHAR(255) UNIQUE NOT NULL,
     membership VARCHAR(50) NOT NULL
 );
 
--- 3. Справочник каналов продаж
+-- 3. Sales channel dimension table
 CREATE TABLE dim_channel (
     channel_id SERIAL PRIMARY KEY,
     dis_channel VARCHAR(100) UNIQUE NOT NULL
 );
 
--- 4. Справочник менеджеров по продажам
+-- 4. Salesperson dimension table
 CREATE TABLE dim_salesperson (
     salesperson_id SERIAL PRIMARY KEY,
     sales_person VARCHAR(255) UNIQUE NOT NULL
 );
 
--- 5. Центральная таблица фактов бронирования
+-- 5. Central fact table for bookings
 CREATE TABLE fact_bookings (
     booking_id SERIAL PRIMARY KEY,
     
-    -- Ключи связи со справочниками
+    -- Keys for relationships with dimension tables
     hotel_id INT REFERENCES dim_hotel(hotel_id),
     customer_id INT REFERENCES dim_customer(customer_id),
     channel_id INT REFERENCES dim_channel(channel_id),
     salesperson_id INT REFERENCES dim_salesperson(salesperson_id),
     
-    -- Даты
+    -- Date and time information
     arrival_date DATE NOT NULL,
     depature_date DATE NOT NULL,
     arrival_cohort VARCHAR(50), -- Текстовая когорта (например, '2026-Q1')
     
-    -- Данные клиента на момент бронирования
+    -- Client data at the time of booking
     cus_name VARCHAR(255),
     phone_no VARCHAR(50),
     card_no VARCHAR(50),
     cus_seg VARCHAR(100) NOT NULL,
     
-    -- Операционные характеристики брони
+    -- Operational characteristics of the booking
     payment_method VARCHAR(50),
     resv_status VARCHAR(50),
     meal VARCHAR(50),
@@ -67,7 +67,7 @@ CREATE TABLE fact_bookings (
     d_s VARCHAR(100),
     customer_review TEXT,
     
-    -- Числовые показатели и метрики
+    -- Numerical metrics and KPIs
     nights INT,
     adult INT,
     child INT,
@@ -75,10 +75,10 @@ CREATE TABLE fact_bookings (
     prev_cancel INT,
     customer_rating INT,
     
-    -- Финансовые показатели
+     -- Financial metrics
     price NUMERIC(10, 2),
     gross NUMERIC(10, 2),
-    disc VARCHAR(50), -- Процент или тип скидки
+    disc VARCHAR(50), -- Percentage or discount type
     disc_amt NUMERIC(10, 2),
     sales NUMERIC(10, 2),
     package NUMERIC(10, 2),
@@ -88,33 +88,33 @@ CREATE TABLE fact_bookings (
     comm_amt NUMERIC(10, 2)
 );
 
--- Наполнение справочника отелей
+-- Populate hotel dimension table
 INSERT INTO dim_hotel (hotel_name, hotel_type, reg, state)
 SELECT hotel_name, MAX(types), MAX(reg), MAX(state)
 FROM raw_booking_data 
 WHERE hotel_name IS NOT NULL 
 GROUP BY hotel_name;
 
--- Наполнение справочника клиентов
+-- Populate customer dimension table
 INSERT INTO dim_customer (emel, membership)
 SELECT emel, MAX(COALESCE(membership, 'None'))
 FROM raw_booking_data 
 WHERE emel IS NOT NULL 
 GROUP BY emel;
 
--- Наполнение справочника каналов продаж
+-- Populate sales channel dimension table
 INSERT INTO dim_channel (dis_channel)
 SELECT DISTINCT dis_channel 
 FROM raw_booking_data 
 WHERE dis_channel IS NOT NULL;
 
--- Наполнение справочника менеджеров
+-- Populate salesperson dimension table
 INSERT INTO dim_salesperson (sales_person)
 SELECT DISTINCT sales_person 
 FROM raw_booking_data 
 WHERE sales_person IS NOT NULL;
 
--- Наполнение таблицы фактов
+-- Populate fact table
 INSERT INTO fact_bookings (
     hotel_id, customer_id, channel_id, salesperson_id, 
     arrival_date, depature_date, arrival_cohort,
