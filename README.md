@@ -4,9 +4,6 @@ Dataset from Kaggle: [Hotel Sales 2024](https://www.kaggle.com/datasets/tianrong
 6,050 hotel bookings for 2024, one row per booking, 36 columns: hotel
 info, customer data, booking details, financials, reviews, sales rep.
 
-Built as a portfolio case for a **Middle Finance Data Analyst (ETG)**
-application.
-
 *(Версия на русском языке: [README.ru.md](README.ru.md))*
 
 ## Dataset overview
