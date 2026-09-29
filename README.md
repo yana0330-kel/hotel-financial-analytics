@@ -130,7 +130,50 @@ quality hypotheses, 5 business questions). Summary below.
 
 ## SQL results
 
-*(In progress — porting the EDA aggregations into the Core/DM layer, `sql/`.)*
+# DWH Architecture (Core Layer) & Data Marts (DM Layer)
+
+At this stage, the flat Staging table (`raw_booking_data`) was successfully normalized and transformed into a fully-fledged analytical Data Warehouse (DWH) powered by PostgreSQL. The architecture follows a classic **Star Schema** design.
+
+---
+
+## 1. Core Layer Architecture (`01_core.sql`)
+To eliminate redundant text duplicates, the data was decomposed into a central fact table and 4 independent dimension tables (lookups):
+
+* **`dim_hotel`** – Hotel reference table. It contains unique hotel names and types (*City Hotel* / *Resort Hotel*). The aggregation was handled directly within the SQL query, keeping the schema clean and avoiding unnecessary intermediary tables.
+* **`dim_customer`** – A lookup of unique clients (**6,037 records**). To account for dynamic updates in guest loyalty statuses, the architecture uses a `GROUP BY email` combined with the `MAX()` function. This locks in the most up-to-date loyalty status from the guest's latest booking.
+* **`dim_channel`** – Sales channels reference table.
+* **`dim_salesperson`** – Sales managers reference table.
+* **`fact_bookings`** – The central fact table. It consolidates numerical metrics, financial KPIs (including calculated ADR), and technical columns. Textual descriptions of hotels, customers, and channels were replaced with efficient integer Foreign Keys (`FOREIGN KEY`) with strict referential integrity (`REFERENCES`).
+
+### Engineering Spotlight: Fixing the Data Encoding Issue
+During the initial migration, a critical anomaly popped up: when grouping data in SQL, the customer segment column (`cus_seg`) only displayed a single value (*Individual*), while the rest vanished into "visual emptiness."
+
+* **Root Cause:** Hidden carriage returns (`\r`, `\n`) and non-breaking spaces imported from Excel.
+* **Solution:** Fix it at the root. The issue was automatically resolved in Pandas before pushing the data to the database using regular expressions: 
+  ```python
+  df_clean['cus_seg'] = df_clean['cus_seg'].str.replace(r'[^a-zA-Z]', '', regex=True)
+  ```
+  Thanks to this, all three clean segments successfully landed in the DB: *Corporate* (2,672), *Individual* (1,828), and *Family* (1,550).
+
+---
+
+## 2. Data Quality Assurance (`02_qa.sql`)
+To verify the integrity of the Core layer, a complete data reconciliation was performed using automated SQL tests:
+
+* **Volume Test:** Checked data completeness. Exactly **6,050 rows** were loaded into the fact table (**0% data loss**).
+* **Referential Integrity Test:** Verified dimension joins. The test returned **0 orphaned records (NULLs)**, confirming seamless key mapping.
+* **Financial Reconciliation:** The final revenue checksum (`SUM(sales)`) in PostgreSQL matched the Jupyter Notebook calculations down to the penny.
+
+---
+
+## 3. Data Marts Layer (`03_dm_marts.sql`)
+To keep the BI tool (Metabase) snappy and prevent it from running heavy, on-the-fly `JOIN` queries across millions of rows, the DM layer was built using lightweight Views (`VIEW`). These views come pre-loaded with answers to 5 core business questions:
+
+*  **`dm_question_1`** – Revenue and booking trends by hotel on a monthly breakdown (to uncover seasonality).
+*  **`dm_question_2`** – Sales channel efficiency and unit economics. SQL metrics backed up our EDA insights, proving that the *Direct* channel is the most profitable (**6,195.23 in net profit** per booking in January) due to zero middleman commissions.
+*  **`dm_question_3`** – Hotel operational benchmarks (Average ADR and length of stay in nights).
+*  **`dm_question_4`** – Revenue analysis by customer segments paired with loyalty packages (*Corporate*, *Individual*, *Family*).
+*  **`dm_question_5`** – Impact of discounts on the average and median guest satisfaction scores.
 
 ## Excel results
 
